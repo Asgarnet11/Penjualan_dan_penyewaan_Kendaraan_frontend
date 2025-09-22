@@ -5,6 +5,7 @@ import "./globals.css";
 // Import komponen layout kita
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={`${inter.className} bg-gray-50`}>
+        <Toaster position="top-center" reverseOrder={false} />
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <main className="flex-grow">{children}</main>

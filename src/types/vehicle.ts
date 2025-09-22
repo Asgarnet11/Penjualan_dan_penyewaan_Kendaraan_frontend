@@ -1,95 +1,61 @@
-// types/vehicle.ts
-
+/**
+ * Tipe ini merepresentasikan satu objek kendaraan secara lengkap,
+ * sesuai dengan data yang ada di database dan dikirim oleh API.
+ */
 export interface Vehicle {
-  id: number;
-  name: string;
-  type: "mobil" | "motor";
+  id: string;
+  owner_id: string;
   brand: string;
   model: string;
   year: number;
+  plate_number: string;
   color: string;
-  transmission: "manual" | "automatic" | "matic";
-  fuelType: "bensin" | "diesel" | "listrik" | "hybrid";
-  price: number;
-  priceType: "sewa" | "jual";
-  description?: string;
-  isAvailable: boolean;
-  vendorId: number;
-  vendor?: {
-    id: number;
-    name: string;
-    email: string;
-    phone?: string;
-    isVerified?: boolean;
-  };
-  images?: VehicleImage[];
-  location?: string;
-  mileage?: number;
-  engineCapacity?: string;
-  seatingCapacity?: number;
-  features?: string[];
-
-  // Legacy support - jika backend masih menggunakan field lama
-  is_for_rent?: boolean;
-  is_for_sale?: boolean;
-  rental_price_daily?: number;
-  sale_price?: number;
-
-  // Rating dan review count
-  averageRating?: number;
-  reviewCount?: number;
-
-  createdAt: string;
-  updatedAt: string;
+  vehicle_type: "mobil" | "motor";
+  transmission: "matic" | "manual";
+  fuel: "bensin" | "diesel" | "listrik";
+  status: "available" | "rented" | "sold" | "maintenance";
+  description: string;
+  is_for_sale: boolean;
+  sale_price: number;
+  is_for_rent: boolean;
+  rental_price_daily: number;
+  created_at: string; // ISO 8601 string format
+  updated_at: string; // ISO 8601 string format
 }
 
-export interface VehicleImage {
-  id: number;
-  vehicleId: number;
-  imageUrl: string;
-  isPrimary: boolean;
-  createdAt: string;
-}
+/**
+ * Tipe untuk data yang dikirim ke backend saat membuat kendaraan baru.
+ * Kita menggunakan Omit untuk membuang field yang di-generate oleh server.
+ */
+export type CreateVehiclePayload = Omit<
+  Vehicle,
+  "id" | "owner_id" | "status" | "created_at" | "updated_at"
+>;
 
+/**
+ * Tipe untuk struktur respons umum dari API kita,
+ * di mana 'data' adalah sebuah array dari Vehicle.
+ * Digunakan oleh endpoint:
+ * - GET /vehicles
+ * - GET /vehicles/my-listings
+ */
 export interface GetVehiclesResponse {
-  success: boolean;
+  status_code: number;
   message: string;
   data: Vehicle[];
-  pagination?: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
 }
 
-export interface GetVehicleByIdResponse {
-  success: boolean;
+/**
+ * Tipe untuk struktur respons umum dari API kita,
+ * di mana 'data' adalah satu objek Vehicle.
+ * Digunakan oleh endpoint:
+ * - GET /vehicles/:id
+ * - POST /vehicles
+ */
+export interface GetVehicleResponse {
+  status_code: number;
   message: string;
   data: Vehicle;
 }
 
-export interface CreateVehiclePayload {
-  name: string;
-  type: "mobil" | "motor";
-  brand: string;
-  model: string;
-  year: number;
-  color: string;
-  transmission: "manual" | "automatic";
-  fuelType: "bensin" | "diesel" | "listrik" | "hybrid";
-  price: number;
-  priceType: "sewa" | "jual";
-  description?: string;
-  location?: string;
-  mileage?: number;
-  engineCapacity?: string;
-  seatingCapacity?: number;
-  features?: string[];
-}
-
-export interface CreateVehicleResponse {
-  success: boolean;
-  message: string;
-  data: Vehicle;
-}
+export type UpdateVehiclePayload = CreateVehiclePayload;

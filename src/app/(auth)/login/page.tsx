@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
-import { loginUser } from "@/lib/api";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
+import { loginUser, getMyProfile } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setToken } = useAuthStore();
+  const { setUserAndToken } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,15 +21,19 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await loginUser({ email, password });
-      const token = response.data.token;
+      const loginResponse = await loginUser({ email, password });
+      const token = loginResponse.data.token;
 
-      // Simpan token ke state global Zustand
-      setToken(token);
+      useAuthStore.setState({ token });
 
-      // Arahkan ke halaman utama setelah berhasil
+      const profileResponse = await getMyProfile();
+      const user = profileResponse.data;
+
+      setUserAndToken(user, token);
+
       router.push("/");
     } catch (err: any) {
+      useAuthStore.getState().logout();
       setError(err.message);
     } finally {
       setIsLoading(false);
