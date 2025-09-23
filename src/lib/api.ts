@@ -1,4 +1,8 @@
 import axios from "axios";
+import { format } from "date-fns";
+import { useAuthStore } from "@/stores/authStore";
+
+// Type imports
 import {
   LoginPayload,
   LoginResponse,
@@ -11,22 +15,25 @@ import {
   Vehicle,
   CreateVehiclePayload,
   UpdateVehiclePayload,
+  VehicleFilterParams,
 } from "@/types/vehicle";
-
-import { useAuthStore } from "@/stores/authStore";
-
 import { GetMyProfileResponse } from "@/types/user";
-import { GetMyBookingsResponse } from "@/types/booking";
-
 import {
+  GetMyBookingsResponse,
   CreateBookingResponse,
   UpdateBookingStatusPayload,
 } from "@/types/booking";
-import { format } from "date-fns";
-
+import {
+  GetConversationsResponse,
+  GetMessagesResponse,
+  Conversation,
+} from "@/types/chat";
 import { InitiatePurchaseResponse, GetMySalesResponse } from "@/types/sales";
 
-// Konfigurasi instance Axios
+// ==========================================
+// API CLIENT CONFIGURATION
+// ==========================================
+
 const apiClient = axios.create({
   baseURL: "http://localhost:8080/api/v1/",
   headers: {
@@ -34,9 +41,10 @@ const apiClient = axios.create({
   },
 });
 
+// Request interceptor untuk menambahkan token otomatis
 apiClient.interceptors.request.use(
   (config) => {
-    const { token } = useAuthStore.getState(); // Ambil token dari Zustand
+    const { token } = useAuthStore.getState();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -47,7 +55,25 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Fungsi untuk login
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+const handleApiError = (error: unknown, defaultMessage: string): void => {
+  if (axios.isAxiosError(error) && error.response) {
+    const errorMessage =
+      error.response.data.message ||
+      error.response.data.error ||
+      defaultMessage;
+    throw new Error(errorMessage);
+  }
+  throw new Error("Terjadi kesalahan pada jaringan");
+};
+
+// ==========================================
+// AUTHENTICATION API
+// ==========================================
+
 export const loginUser = async (
   payload: LoginPayload
 ): Promise<LoginResponse> => {
@@ -58,11 +84,8 @@ export const loginUser = async (
     );
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      // Melempar error dengan pesan dari backend jika ada
-      throw new Error(error.response.data.message || "Login gagal");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Login gagal");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -82,62 +105,8 @@ export const registerUser = async (
           "Registrasi gagal. Email atau nomor telepon mungkin sudah terdaftar."
       );
     }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
-
-export const getVehicles = async (): Promise<GetVehiclesResponse> => {
-  try {
-    // Di masa depan, kita bisa menambahkan parameter filter di sini
-    const response = await apiClient.get<GetVehiclesResponse>("/vehicles");
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil data kendaraan"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
-
-export const getVehicleById = async (id: string): Promise<Vehicle> => {
-  try {
-    const response = await apiClient.get<GetVehicleResponse>(`/vehicles/${id}`);
-    return response.data.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil detail kendaraan"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
-
-export const createBooking = async (
-  vehicleId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<CreateBookingResponse> => {
-  // Backend kita mengharapkan format "YYYY-MM-DD"
-  const payload = {
-    vehicle_id: vehicleId,
-    start_date: format(startDate, "yyyy-MM-dd"),
-    end_date: format(endDate, "yyyy-MM-dd"),
-  };
-
-  try {
-    const response = await apiClient.post<CreateBookingResponse>(
-      "/bookings",
-      payload
-    );
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || "Gagal membuat booking");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Registrasi gagal");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -146,77 +115,44 @@ export const getMyProfile = async (): Promise<GetMyProfileResponse> => {
     const response = await apiClient.get<GetMyProfileResponse>("/auth/me");
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil data profil"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Gagal mengambil data profil");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
-export const getMyBookings = async (): Promise<GetMyBookingsResponse> => {
-  try {
-    const response = await apiClient.get<GetMyBookingsResponse>(
-      "/bookings/my-bookings"
-    );
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil riwayat booking"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
+// ==========================================
+// VEHICLE API
+// ==========================================
 
-export const initiatePurchase = async (
-  vehicleId: string
-): Promise<InitiatePurchaseResponse> => {
+export const getVehicles = async (
+  params: VehicleFilterParams = {}
+): Promise<GetVehiclesResponse> => {
   try {
-    // Backend sudah siap dengan endpoint ini
-    const response = await apiClient.post<InitiatePurchaseResponse>(
-      `/vehicles/${vehicleId}/purchase`
-    );
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.error || "Gagal memulai proses pembelian"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
+    const queryParams = new URLSearchParams();
 
-export const getMyPurchases = async (): Promise<GetMySalesResponse> => {
-  try {
-    const response = await apiClient.get<GetMySalesResponse>(
-      "/sales/purchases"
-    );
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil riwayat pembelian"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== "" && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
 
-export const getMyListings = async (): Promise<GetVehiclesResponse> => {
-  try {
     const response = await apiClient.get<GetVehiclesResponse>(
-      "/vehicles/my-listings"
+      `/vehicles?${queryParams.toString()}`
     );
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.message || "Gagal mengambil listing");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Gagal mengambil data kendaraan");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getVehicleById = async (id: string): Promise<Vehicle> => {
+  try {
+    const response = await apiClient.get<GetVehicleResponse>(`/vehicles/${id}`);
+    return response.data.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil detail kendaraan");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -230,40 +166,8 @@ export const createVehicle = async (
     );
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || "Gagal membuat listing");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
-
-export const getVendorBookings = async (): Promise<GetMyBookingsResponse> => {
-  try {
-    const response = await apiClient.get<GetMyBookingsResponse>(
-      "/bookings/vendor"
-    );
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil data booking vendor"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
-  }
-};
-
-export const getVendorSales = async (): Promise<GetMySalesResponse> => {
-  try {
-    const response = await apiClient.get<GetMySalesResponse>("/sales/sales");
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.message || "Gagal mengambil data penjualan vendor"
-      );
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Gagal membuat listing");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -278,10 +182,8 @@ export const updateVehicle = async (
     );
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || "Gagal mengupdate listing");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Gagal mengupdate listing");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -289,10 +191,71 @@ export const deleteVehicle = async (id: string): Promise<void> => {
   try {
     await apiClient.delete(`/vehicles/${id}`);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || "Gagal menghapus listing");
-    }
-    throw new Error("Terjadi kesalahan pada jaringan");
+    handleApiError(error, "Gagal menghapus listing");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getMyListings = async (): Promise<GetVehiclesResponse> => {
+  try {
+    const response = await apiClient.get<GetVehiclesResponse>(
+      "/vehicles/my-listings"
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil listing");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+// ==========================================
+// BOOKING API
+// ==========================================
+
+export const createBooking = async (
+  vehicleId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<CreateBookingResponse> => {
+  try {
+    const payload = {
+      vehicle_id: vehicleId,
+      start_date: format(startDate, "yyyy-MM-dd"),
+      end_date: format(endDate, "yyyy-MM-dd"),
+    };
+
+    const response = await apiClient.post<CreateBookingResponse>(
+      "/bookings",
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal membuat booking");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getMyBookings = async (): Promise<GetMyBookingsResponse> => {
+  try {
+    const response = await apiClient.get<GetMyBookingsResponse>(
+      "/bookings/my-bookings"
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil riwayat booking");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getVendorBookings = async (): Promise<GetMyBookingsResponse> => {
+  try {
+    const response = await apiClient.get<GetMyBookingsResponse>(
+      "/bookings/vendor"
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil data booking vendor");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };
 
@@ -303,11 +266,147 @@ export const updateBookingStatus = async (
   try {
     await apiClient.patch(`/bookings/${bookingId}/status`, payload);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(
-        error.response.data.error || "Gagal mengupdate status booking"
+    handleApiError(error, "Gagal mengupdate status booking");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+// ==========================================
+// SALES/PURCHASE API
+// ==========================================
+
+export const initiatePurchase = async (
+  vehicleId: string
+): Promise<InitiatePurchaseResponse> => {
+  try {
+    const response = await apiClient.post<InitiatePurchaseResponse>(
+      `/vehicles/${vehicleId}/purchase`
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal memulai proses pembelian");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getMyPurchases = async (): Promise<GetMySalesResponse> => {
+  try {
+    const response = await apiClient.get<GetMySalesResponse>(
+      "/sales/purchases"
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil riwayat pembelian");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getVendorSales = async (): Promise<GetMySalesResponse> => {
+  try {
+    const response = await apiClient.get<GetMySalesResponse>("/sales/sales");
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil data penjualan vendor");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+// ==========================================
+// CHAT API
+// ==========================================
+
+export const startConversation = async (
+  vehicleId: string
+): Promise<Conversation> => {
+  try {
+    const response = await apiClient.post(
+      `/vehicles/${vehicleId}/conversations`
+    );
+    return response.data.data;
+  } catch (error) {
+    handleApiError(error, "Gagal memulai percakapan");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getConversations = async (): Promise<GetConversationsResponse> => {
+  try {
+    const response = await apiClient.get<GetConversationsResponse>(
+      "/conversations"
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil daftar percakapan");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getMessagesByConversationId = async (
+  conversationId: string
+): Promise<GetMessagesResponse> => {
+  try {
+    const response = await apiClient.get<GetMessagesResponse>(
+      `/conversations/${conversationId}/messages`
+    );
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil riwayat pesan");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+// ==========================================
+// ADMIN API
+// ==========================================
+
+export const getAllUsersForAdmin = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get("/admin/users");
+    return response.data;
+  } catch (error) {
+    handleApiError(error, "Gagal mengambil data pengguna");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const verifyVendor = async (vendorId: string): Promise<void> => {
+  try {
+    await apiClient.patch(`/admin/vendors/${vendorId}/verify`);
+  } catch (error) {
+    handleApiError(error, "Gagal memverifikasi vendor");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/admin/users/${userId}`);
+  } catch (error) {
+    handleApiError(error, "Gagal menghapus pengguna");
+    throw error; // This will never be reached due to handleApiError throwing
+  }
+};
+
+export const getAllListingsForAdmin =
+  async (): Promise<GetVehiclesResponse> => {
+    try {
+      const response = await apiClient.get<GetVehiclesResponse>(
+        "/admin/vehicles"
       );
+      return response.data;
+    } catch (error) {
+      handleApiError(error, "Gagal mengambil data listing");
+      throw error; // This will never be reached due to handleApiError throwing
     }
-    throw new Error("Terjadi kesalahan pada jaringan");
+  };
+
+export const deleteListingByAdmin = async (
+  vehicleId: string
+): Promise<void> => {
+  try {
+    await apiClient.delete(`/admin/vehicles/${vehicleId}`);
+  } catch (error) {
+    handleApiError(error, "Gagal menghapus listing");
+    throw error; // This will never be reached due to handleApiError throwing
   }
 };

@@ -59,3 +59,12 @@ export interface GetVehicleResponse {
 }
 
 export type UpdateVehiclePayload = CreateVehiclePayload;
+
+export interface VehicleFilterParams {
+  type?: "mobil" | "motor";
+  transmission?: "matic" | "manual";
+  search?: string;
+  is_for_sale?: boolean;
+  is_for_rent?: boolean;
+  // Tambahkan filter lain di sini nanti (harga, tahun, dll)
+}
