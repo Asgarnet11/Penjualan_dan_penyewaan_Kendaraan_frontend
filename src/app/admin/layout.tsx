@@ -13,7 +13,6 @@ export default function AdminDashboardLayout({
   const { user } = useAuthStore();
   const router = useRouter();
 
-  // Proteksi di sisi client untuk memastikan hanya admin yang bisa akses
   if (user === null) {
     if (typeof window !== "undefined") router.push("/login");
     return (
