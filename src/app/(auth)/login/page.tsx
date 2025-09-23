@@ -32,11 +32,13 @@ export default function LoginPage() {
       setUserAndToken(user, token);
 
       router.push("/");
-    } catch (err: any) {
-      useAuthStore.getState().logout();
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+    } catch (err: unknown) {
+      // <-- Gunakan 'unknown'
+      if (err instanceof Error) {
+        setError(err.message); // <-- Aman untuk diakses
+      } else {
+        setError("Terjadi kesalahan yang tidak diketahui");
+      }
     }
   };
 
