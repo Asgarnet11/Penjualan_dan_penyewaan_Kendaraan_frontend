@@ -14,13 +14,15 @@ export interface Vehicle {
   transmission: "matic" | "manual";
   fuel: "bensin" | "diesel" | "listrik";
   status: "available" | "rented" | "sold" | "maintenance";
+  rental_price_daily: number;
   description: string;
   is_for_sale: boolean;
   sale_price: number;
   is_for_rent: boolean;
-  rental_price_daily: number;
-  created_at: string; // ISO 8601 string format
-  updated_at: string; // ISO 8601 string format
+  location: string;
+  features: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface Vehicle {
  */
 export type CreateVehiclePayload = Omit<
   Vehicle,
-  "id" | "owner_id" | "status" | "created_at" | "updated_at"
+  "id" | "owner_id" | "status" | "created_at" | "updated_at" | "images"
 >;
 
 /**
@@ -67,4 +69,12 @@ export interface VehicleFilterParams {
   is_for_sale?: boolean;
   is_for_rent?: boolean;
   // Tambahkan filter lain di sini nanti (harga, tahun, dll)
+}
+
+export interface UploadImageResponse {
+  status_code: number;
+  message: string;
+  data: {
+    image_url: string;
+  };
 }

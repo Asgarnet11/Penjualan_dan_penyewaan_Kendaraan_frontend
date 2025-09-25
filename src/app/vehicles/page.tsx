@@ -2,42 +2,35 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import { getVehicleById } from "@/lib/api";
 import { Vehicle } from "@/types/vehicle";
 
-// State Management & Notifikasi
+// State Management
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
 
 // Components
-import VehicleImageGallery from "../../components/vehicles/VehicleImageGallery";
-import VehicleInfo from "../../components/vehicles/VehicleInfo";
-import VehicleSpecs from "../../components/vehicles/VehicleSpecs";
-import VehicleActionPanel from "../../components/vehicles/VehicleActionPanel";
-import LoadingState from "../../components/vehicles/LoadingState";
+import VehicleImageGallery from "@/components/vehicles/VehicleImageGallery";
+import VehicleInfo from "@/components/vehicles/VehicleInfo";
+import VehicleSpecs from "@/components/vehicles/VehicleSpecs";
+import VehicleActionPanel from "@/components/vehicles/VehicleActionPanel";
+import LoadingState from "@/components/vehicles/LoadingState";
 import ErrorState from "@/components/vehicles/ErrorState";
 
 // Ikon
 import { ChevronLeft } from "lucide-react";
 
 export default function VehicleDetailPage() {
-  const router = useRouter();
   const params = useParams();
   const vehicleId = params.id as string;
 
-  // State untuk autentikasi
   const { user } = useAuthStore();
-
-  // State untuk data kendaraan
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-
-  // State untuk UI & Interaksi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ambil data kendaraan saat komponen pertama kali dimuat
   useEffect(() => {
     if (!vehicleId) return;
 
@@ -46,9 +39,12 @@ export default function VehicleDetailPage() {
       try {
         const data = await getVehicleById(vehicleId);
         setVehicle(data);
-      } catch (err: any) {
-        setError(err.message);
-        toast.error("Gagal memuat detail kendaraan");
+      } catch (err: unknown) {
+        // <-- PERBAIKAN DI SINI
+        const message =
+          err instanceof Error ? err.message : "Gagal memuat detail kendaraan";
+        setError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -56,7 +52,6 @@ export default function VehicleDetailPage() {
     fetchVehicle();
   }, [vehicleId]);
 
-  // Tampilan Kondisional (Loading, Error, Data)
   if (isLoading) {
     return <LoadingState />;
   }
@@ -73,7 +68,7 @@ export default function VehicleDetailPage() {
             Kendaraan Tidak Ditemukan
           </h2>
           <p className="text-gray-600 mb-4">
-            Kendaraan yang Anda cari tidak tersedia
+            Kendaraan yang Anda cari tidak tersedia atau telah dihapus.
           </p>
           <Link
             href="/"
@@ -92,7 +87,6 @@ export default function VehicleDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        {/* Navigation */}
         <nav className="mb-8">
           <Link
             href="/"
@@ -103,16 +97,15 @@ export default function VehicleDetailPage() {
           </Link>
         </nav>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 lg:gap-12">
-          {/* Left Column: Images, Description, Specifications */}
+          {/* Kolom Kiri: Gambar, Deskripsi, Spesifikasi */}
           <div className="xl:col-span-3 space-y-8">
             <VehicleImageGallery vehicle={vehicle} />
             <VehicleInfo vehicle={vehicle} />
             <VehicleSpecs vehicle={vehicle} />
           </div>
 
-          {/* Right Column: Action Panel */}
+          {/* Kolom Kanan: Panel Aksi */}
           <div className="xl:col-span-1">
             <VehicleActionPanel
               vehicle={vehicle}

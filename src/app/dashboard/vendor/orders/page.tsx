@@ -21,7 +21,7 @@ export default function ManageOrdersPage() {
   const [activeTab, setActiveTab] = useState<"bookings" | "sales">("bookings");
 
   const fetchData = async () => {
-    setIsLoading(true);
+    // Tidak perlu setIsLoading(true) di sini karena sudah diatur di state awal
     try {
       const [bookingsRes, salesRes] = await Promise.all([
         getVendorBookings(),
@@ -29,8 +29,14 @@ export default function ManageOrdersPage() {
       ]);
       setBookings(bookingsRes.data || []);
       setSales(salesRes.data || []);
-    } catch (err: any) {
-      setError(err.message);
+      setError(null); // Bersihkan error jika fetch berhasil
+    } catch (err: unknown) {
+      // <-- PERBAIKAN 1
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Terjadi kesalahan yang tidak diketahui");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +46,6 @@ export default function ManageOrdersPage() {
     fetchData();
   }, []);
 
-  // Fungsi untuk menangani update status
   const handleStatusUpdate = async (
     bookingId: string,
     status: "rented_out" | "completed" | "cancelled"
@@ -53,8 +58,13 @@ export default function ManageOrdersPage() {
       toast.success("Status berhasil diperbarui!", { id: toastId });
       // Ambil ulang data untuk merefresh tampilan
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message, { id: toastId });
+    } catch (err: unknown) {
+      // <-- PERBAIKAN 2
+      if (err instanceof Error) {
+        toast.error(err.message, { id: toastId });
+      } else {
+        toast.error("Gagal memperbarui status", { id: toastId });
+      }
     }
   };
 
@@ -83,7 +93,7 @@ export default function ManageOrdersPage() {
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab("bookings")}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === "bookings"
                 ? "border-teal-500 text-teal-600"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -93,7 +103,7 @@ export default function ManageOrdersPage() {
           </button>
           <button
             onClick={() => setActiveTab("sales")}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === "sales"
                 ? "border-teal-500 text-teal-600"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -116,41 +126,44 @@ export default function ManageOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {bookings.map((booking) => (
-                <div key={booking.id} className="flex flex-col">
+                <div
+                  key={booking.id}
+                  className="bg-white rounded-lg shadow-sm flex flex-col"
+                >
                   <BookingHistoryCard booking={booking} />
                   {/* Panel Aksi untuk Vendor */}
-                  <div className="bg-gray-50 p-2 rounded-b-lg border-t flex justify-end space-x-2">
+                  <div className="bg-gray-50 p-3 mt-auto rounded-b-lg border-t flex justify-end space-x-2">
                     {booking.status === "confirmed" && (
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(booking.id, "rented_out")
-                        }
-                        className="text-xs font-semibold text-blue-600 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md flex items-center"
-                      >
-                        <Car className="w-4 h-4 mr-1" />
-                        Mulai Sewa
-                      </button>
+                      <>
+                        <button
+                          onClick={() =>
+                            handleStatusUpdate(booking.id, "rented_out")
+                          }
+                          className="text-xs font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 px-3 py-1.5 rounded-md flex items-center transition-colors"
+                        >
+                          <Car className="w-4 h-4 mr-1" />
+                          Mulai Sewa
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleStatusUpdate(booking.id, "cancelled")
+                          }
+                          className="text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md flex items-center transition-colors"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Batalkan
+                        </button>
+                      </>
                     )}
                     {booking.status === "rented_out" && (
                       <button
                         onClick={() =>
                           handleStatusUpdate(booking.id, "completed")
                         }
-                        className="text-xs font-semibold text-green-600 bg-green-100 hover:bg-green-200 px-3 py-1 rounded-md flex items-center"
+                        className="text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-md flex items-center transition-colors"
                       >
                         <Check className="w-4 h-4 mr-1" />
-                        Selesai
-                      </button>
-                    )}
-                    {booking.status === "confirmed" && (
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(booking.id, "cancelled")
-                        }
-                        className="text-xs font-semibold text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md flex items-center"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Batalkan
+                        Selesaikan
                       </button>
                     )}
                   </div>

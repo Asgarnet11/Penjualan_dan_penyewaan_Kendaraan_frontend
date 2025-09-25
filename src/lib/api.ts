@@ -413,3 +413,27 @@ export const deleteListingByAdmin = async (
     throw error; // This will never be reached due to handleApiError throwing
   }
 };
+
+export const uploadVehicleImage = async (
+  vehicleId: string,
+  imageFile: File
+): Promise<any> => {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
+  try {
+    const response = await apiClient.post(
+      `/vehicles/${vehicleId}/images`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.error || "Gagal mengupload gambar");
+    }
+    throw new Error("Terjadi kesalahan pada jaringan");
+  }
+};
