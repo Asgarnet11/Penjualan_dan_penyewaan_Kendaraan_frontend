@@ -166,7 +166,7 @@ export default function ChatRoomPage() {
                     ) : (
                       <div className="w-8 h-8 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center">
                         <span className="text-teal-700 font-medium text-xs">
-                          {user?.name?.charAt(0) || "U"}
+                          {user?.full_name?.charAt(0) || "U"}
                         </span>
                       </div>
                     )}

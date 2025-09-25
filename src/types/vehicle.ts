@@ -2,6 +2,12 @@
  * Tipe ini merepresentasikan satu objek kendaraan secara lengkap,
  * sesuai dengan data yang ada di database dan dikirim oleh API.
  */
+export interface VehicleImage {
+  id: string;
+  image_url: string;
+  is_primary: boolean;
+}
+
 export interface Vehicle {
   id: string;
   owner_id: string;
@@ -21,6 +27,7 @@ export interface Vehicle {
   is_for_rent: boolean;
   location: string;
   features: string[];
+  images: VehicleImage[];
   created_at: string;
   updated_at: string;
 }

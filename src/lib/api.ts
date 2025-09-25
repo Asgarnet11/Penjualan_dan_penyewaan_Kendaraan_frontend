@@ -16,8 +16,9 @@ import {
   CreateVehiclePayload,
   UpdateVehiclePayload,
   VehicleFilterParams,
+  UploadImageResponse,
 } from "@/types/vehicle";
-import { GetMyProfileResponse } from "@/types/user";
+import { GetMyProfileResponse, GetAllUsersResponse } from "@/types/user";
 import {
   GetMyBookingsResponse,
   CreateBookingResponse,
@@ -362,7 +363,7 @@ export const getMessagesByConversationId = async (
 // ADMIN API
 // ==========================================
 
-export const getAllUsersForAdmin = async (): Promise<any> => {
+export const getAllUsersForAdmin = async (): Promise<GetAllUsersResponse> => {
   try {
     const response = await apiClient.get("/admin/users");
     return response.data;
@@ -417,7 +418,7 @@ export const deleteListingByAdmin = async (
 export const uploadVehicleImage = async (
   vehicleId: string,
   imageFile: File
-): Promise<any> => {
+): Promise<UploadImageResponse> => {
   const formData = new FormData();
   formData.append("image", imageFile);
 

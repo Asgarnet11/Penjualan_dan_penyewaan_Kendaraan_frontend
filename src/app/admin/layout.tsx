@@ -122,13 +122,13 @@ export default function AdminDashboardLayout({
             <div className="flex items-center space-x-3">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-slate-700">
-                  {user.name}
+                  {user.full_name}
                 </p>
                 <p className="text-xs text-slate-500 capitalize">{user.role}</p>
               </div>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">
-                  {user.name?.charAt(0)?.toUpperCase() || "A"}
+                  {user.full_name?.charAt(0)?.toUpperCase() || "A"}
                 </span>
               </div>
             </div>

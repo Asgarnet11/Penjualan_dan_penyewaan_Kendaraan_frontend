@@ -30,7 +30,8 @@ export default function VehicleActionPanel({
   isMyOwnListing,
 }: VehicleActionPanelProps) {
   const router = useRouter();
-  const { isAuth } = useAuthStore();
+  const { user } = useAuthStore();
+  const isAuth = !!user;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [range, setRange] = useState<DateRange | undefined>();
